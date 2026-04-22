@@ -1,0 +1,48 @@
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Backup files
+*.backup
+backup-*/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Installation directories (on server)
+/opt/remnawave/
+/opt/remnanode/
+/etc/wireguard/clients/
+/etc/hysteria/
+
+# Certificates
+*.pem
+*.crt
+*.key
+*.csr
+
+# Archives
+*.tar.gz
+*.zip
+*.rar
+
+# Test files
+test/
+testing/
