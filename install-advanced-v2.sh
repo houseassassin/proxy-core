@@ -25,6 +25,9 @@ CYAN='\033[0;36m'
 GRAY='\033[0;90m'
 NC='\033[0m'
 
+# Create project directory first
+mkdir -p "$PROJECT_DIR"
+
 # Logging
 LOGFILE="${PROJECT_DIR}/installer.log"
 
