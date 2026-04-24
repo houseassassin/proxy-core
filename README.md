@@ -16,7 +16,7 @@
 ```
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/houseassassin/proxy-core)
+[![Version](https://img.shields.io/badge/version-2.1.1-blue.svg)](https://github.com/houseassassin/proxy-core)
 [![Bash](https://img.shields.io/badge/bash-5.0+-green.svg)](https://www.gnu.org/software/bash/)
 [![Docker](https://img.shields.io/badge/docker-20.10+-blue.svg)](https://www.docker.com/)
 
@@ -329,11 +329,27 @@ sudo ./wg-manager.sh
 # Управление MTProxy
 sudo ./mtproxy-manager.sh
 
+# Управление Reverse Proxy (NEW!)
+sudo ./reverse-proxy-manager.sh
+
 # Общее управление панелями
 sudo ./manage.sh
 
 # Обновление компонентов
 sudo ./update.sh
+```
+
+### 🆕 Новое в версии 2.1.1
+
+**Reverse Proxy Manager** - мощный инструмент для настройки:
+- ✅ Nginx - высокая производительность и кэширование
+- ✅ Caddy - автоматический SSL из коробки
+- ✅ HAProxy - балансировка нагрузки
+- ✅ Гибридные конфигурации (Nginx + Caddy)
+- ✅ Подсказки и рекомендации по выбору
+
+```bash
+sudo ./reverse-proxy-manager.sh
 ```
 
 ---
@@ -342,16 +358,25 @@ sudo ./update.sh
 
 ```
 proxy-core/
-├── 📄 install.sh              # Главный установщик v2.1.0
-├── 🎮 manage.sh               # Менеджер панелей
-├── 🔧 wg-manager.sh           # WireGuard менеджер
-├── 📱 mtproxy-manager.sh      # MTProxy менеджер
-├── 🔄 update.sh               # Обновление компонентов
-├── 🎨 banner.sh               # ASCII баннер
-├── 📖 README.md               # Документация
-├── 📖 CONTRIBUTING.md         # Руководство для участников
-├── 📖 PUBLISH.md              # Инструкция по публикации
-└── 📜 LICENSE                 # MIT License
+├── 📄 install.sh                    # Главный установщик v2.1.1
+├── 🎮 manage.sh                     # Менеджер панелей
+├── 🔧 wg-manager.sh                 # WireGuard менеджер
+├── 📱 mtproxy-manager.sh            # MTProxy менеджер
+├── 🔄 update.sh                     # Обновление компонентов
+├── 🌐 reverse-proxy-manager.sh      # Reverse Proxy менеджер (NEW!)
+├── 🎨 banner.sh                     # ASCII баннер
+├── 📚 lib/                          # Библиотеки (NEW!)
+│   ├── common.sh                   # Общие функции
+│   ├── wireguard.sh                # WireGuard функции
+│   └── logging.sh                  # Логирование
+├── ⚙️ config/                       # Конфигурация (NEW!)
+│   └── defaults.conf               # Настройки по умолчанию
+├── 🧪 tests/                        # Тесты (NEW!)
+├── 📖 README.md                     # Документация
+├── 📖 CHANGELOG.md                  # История изменений (NEW!)
+├── 📖 CONTRIBUTING.md               # Руководство для участников
+├── 📖 PUBLISH.md                    # Инструкция по публикации
+└── 📜 LICENSE                       # MIT License
 ```
 
 ---
@@ -377,28 +402,52 @@ proxy-core/
 
 ## 🔄 Changelog
 
-### Version 2.1.0 (2026-04-22)
+### Version 2.1.1 (2026-04-24)
 
 <details>
 <summary><b>✨ Новое</b></summary>
 
-- 📱 Поддержка MTProxy для Telegram
-- 🔄 Выбор Reverse Proxy (Nginx/Caddy)
-- 🎭 Selfsteal - маскировка под обычный сайт
-- 📱 QR-коды для MTProxy
-- 🎮 Менеджер MTProxy
+- 🚀 Полная реализация функций установки всех панелей
+- 📚 Общая библиотека функций (lib/common.sh)
+- 📚 Библиотека WireGuard (lib/wireguard.sh)
+- 📚 Библиотека логирования (lib/logging.sh)
+- ⚙️ Конфигурационный файл (config/defaults.conf)
+- 🌐 Reverse Proxy Manager с поддержкой Nginx, Caddy, HAProxy
+- 🔁 Цикл меню в wg-manager.sh
+- 💾 Сохранение конфигурации MTProxy
+- 📱 QR-код для MTProxy
+- ✅ Валидация пользовательского ввода
+
+</details>
+
+<details>
+<summary><b>🐛 Исправления</b></summary>
+
+- Критический баг: функции установки не были реализованы
+- Критический баг: MTProxy конфигурация не сохранялась
+- Критический баг: Selfsteal падал без Remnawave
+- Баг: wg-manager.sh закрывался после действия
+- Баг: устаревшая команда docker-compose
 
 </details>
 
 <details>
 <summary><b>🔧 Улучшения</b></summary>
 
-- Интерактивный выбор компонентов
-- Улучшенная система меню
-- Больше опций конфигурации
-- Исправлена ошибка создания директории логов
+- Обновлено на Docker Compose v2
+- Улучшена проверка зависимостей
+- Улучшен UX с подтверждениями
+- Более информативные сообщения об ошибках
 
 </details>
+
+Полный список изменений: [CHANGELOG.md](CHANGELOG.md)
+
+### Version 2.1.0 (2026-04-22)
+
+- 📱 Поддержка MTProxy для Telegram
+- 🔄 Выбор Reverse Proxy (Nginx/Caddy)
+- 🎭 Selfsteal - маскировка под обычный сайт
 
 ---
 

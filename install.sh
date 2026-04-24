@@ -223,11 +223,164 @@ install_packages() {
     success "Системные пакеты установлены"
 }
 
+# WireGuard installation
+install_wireguard() {
+    log "Установка WireGuard..."
+
+    case $OS in
+        ubuntu|debian)
+            apt-get install -y wireguard wireguard-tools qrencode
+            ;;
+        centos|rhel|fedora)
+            yum install -y wireguard-tools qrencode
+            ;;
+    esac
+
+    mkdir -p /etc/wireguard
+    cd /etc/wireguard
+    wg genkey | tee server_private.key | wg pubkey > server_public.key
+    chmod 600 server_private.key
+
+    SERVER_PRIVATE_KEY=$(cat server_private.key)
+    SERVER_PUBLIC_KEY=$(cat server_public.key)
+    SERVER_IP=$(get_server_ip)
+    WG_PORT=$(get_random_port 51820 51900)
+
+    cat > /etc/wireguard/wg0.conf <<EOF
+[Interface]
+PrivateKey = $SERVER_PRIVATE_KEY
+Address = 10.0.0.1/24
+ListenPort = $WG_PORT
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+EOF
+
+    echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+    sysctl -p >/dev/null 2>&1
+
+    systemctl enable wg-quick@wg0
+    systemctl start wg-quick@wg0
+
+    ufw allow $WG_PORT/udp 2>/dev/null || firewall-cmd --permanent --add-port=$WG_PORT/udp 2>/dev/null
+
+    success "WireGuard установлен на порту $WG_PORT"
+
+    read -p "Создать первого клиента? (Y/n): " create_client
+    if [[ "$create_client" != "n" && "$create_client" != "N" ]]; then
+        bash "$PROJECT_DIR/wg-manager.sh" 2>/dev/null || log "Запустите wg-manager.sh для создания клиентов"
+    fi
+}
+
+# 3x-ui installation
+install_3xui() {
+    log "Установка 3x-ui..."
+    bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+    success "3x-ui установлен"
+}
+
+# Remnawave installation
+install_remnawave() {
+    log "Установка Remnawave..."
+
+    install_docker
+
+    cd /opt
+    if [ -d "remnawave" ]; then
+        warn "Remnawave уже установлен, обновляем..."
+        cd remnawave
+        docker compose down
+        cd /opt
+        rm -rf remnawave
+    fi
+
+    git clone https://github.com/remnawave/backend.git remnawave
+    cd remnawave
+
+    DB_PASSWORD=$(openssl rand -base64 32)
+    ADMIN_PASSWORD=$(openssl rand -base64 16)
+
+    cat > .env <<EOF
+DATABASE_URL="postgresql://remnawave:${DB_PASSWORD}@postgres:5432/remnawave"
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
+JWT_SECRET=$(openssl rand -base64 32)
+EOF
+
+    docker compose up -d
+
+    success "Remnawave установлен"
+    echo ""
+    log "Админ логин: admin"
+    log "Админ пароль: $ADMIN_PASSWORD"
+    warn "Сохраните эти данные!"
+}
+
+# Hysteria2 installation
+install_hysteria2() {
+    log "Установка Hysteria2..."
+
+    HYSTERIA_VERSION=$(curl -s https://api.github.com/repos/apernet/hysteria/releases/latest | grep tag_name | cut -d '"' -f 4)
+    wget -O /tmp/hysteria "https://github.com/apernet/hysteria/releases/download/${HYSTERIA_VERSION}/hysteria-linux-amd64"
+    chmod +x /tmp/hysteria
+    mv /tmp/hysteria /usr/local/bin/hysteria
+
+    mkdir -p /etc/hysteria
+
+    HYSTERIA_PASSWORD=$(openssl rand -base64 32)
+    HYSTERIA_PORT=$(get_random_port 36712 36800)
+
+    cat > /etc/hysteria/config.yaml <<EOF
+listen: :$HYSTERIA_PORT
+
+tls:
+  cert: /etc/hysteria/cert.pem
+  key: /etc/hysteria/key.pem
+
+auth:
+  type: password
+  password: $HYSTERIA_PASSWORD
+
+masquerade:
+  type: proxy
+  proxy:
+    url: https://www.bing.com
+    rewriteHost: true
+EOF
+
+    openssl req -x509 -nodes -newkey rsa:4096 -keyout /etc/hysteria/key.pem \
+        -out /etc/hysteria/cert.pem -days 365 -subj "/CN=www.example.com" 2>/dev/null
+
+    cat > /etc/systemd/system/hysteria-server.service <<EOF
+[Unit]
+Description=Hysteria Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/hysteria server -c /etc/hysteria/config.yaml
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable hysteria-server
+    systemctl start hysteria-server
+
+    ufw allow $HYSTERIA_PORT/udp 2>/dev/null || firewall-cmd --permanent --add-port=$HYSTERIA_PORT/udp 2>/dev/null
+
+    success "Hysteria2 установлен"
+    echo ""
+    log "Порт: $HYSTERIA_PORT"
+    log "Пароль: $HYSTERIA_PASSWORD"
+    warn "Сохраните эти данные!"
+}
+
 # MTProxy installation
 install_mtproxy() {
     log "Установка MTProxy для Telegram..."
 
-    # Установка зависимостей
     case $OS in
         ubuntu|debian)
             apt-get install -y git build-essential libssl-dev zlib1g-dev
@@ -237,7 +390,6 @@ install_mtproxy() {
             ;;
     esac
 
-    # Клонирование репозитория
     cd /opt
     if [ -d "MTProxy" ]; then
         rm -rf MTProxy
@@ -245,21 +397,16 @@ install_mtproxy() {
     git clone https://github.com/TelegramMessenger/MTProxy.git
     cd MTProxy
 
-    # Компиляция
     make
 
-    # Получение секрета
     curl -s https://core.telegram.org/getProxySecret -o proxy-secret
     curl -s https://core.telegram.org/getProxyConfig -o proxy-multi.conf
 
-    # Генерация секрета для клиентов
     SECRET=$(head -c 16 /dev/urandom | xxd -ps)
 
-    # Выбор порта
     read -p "Введите порт для MTProxy (по умолчанию 8443): " MTPROXY_PORT
     MTPROXY_PORT=${MTPROXY_PORT:-8443}
 
-    # Создание systemd сервиса
     cat > /etc/systemd/system/mtproxy.service <<EOF
 [Unit]
 Description=MTProxy Telegram Proxy
@@ -279,8 +426,13 @@ EOF
     systemctl enable mtproxy
     systemctl start mtproxy
 
-    # Открыть порт в firewall
     ufw allow $MTPROXY_PORT/tcp 2>/dev/null || firewall-cmd --permanent --add-port=$MTPROXY_PORT/tcp 2>/dev/null
+
+    cat > /opt/MTProxy/.config <<EOF
+MTPROXY_PORT=$MTPROXY_PORT
+SECRET=$SECRET
+EOF
+    chmod 600 /opt/MTProxy/.config
 
     SERVER_IP=$(get_server_ip)
 
@@ -293,6 +445,12 @@ EOF
     echo -e "${YELLOW}Server: ${SERVER_IP}${NC}"
     echo -e "${YELLOW}Port: ${MTPROXY_PORT}${NC}"
     echo -e "${YELLOW}Secret: ${SECRET}${NC}"
+
+    if command -v qrencode &> /dev/null; then
+        echo ""
+        log "QR-код для быстрого подключения:"
+        qrencode -t ansiutf8 "tg://proxy?server=${SERVER_IP}&port=${MTPROXY_PORT}&secret=${SECRET}"
+    fi
 }
 
 # Reverse Proxy selection
@@ -380,15 +538,29 @@ install_caddy() {
 install_selfsteal() {
     log "Установка Selfsteal шаблона..."
 
-    if [ ! -d "/opt/remnawave" ] && [ ! -d "/opt/remnanode" ]; then
-        error "Remnawave или Remnanode должны быть установлены для selfsteal"
-    fi
-
     # Определяем директорию
     if [ -d "/opt/remnawave" ]; then
         INSTALL_DIR="/opt/remnawave"
-    else
+    elif [ -d "/opt/remnanode" ]; then
         INSTALL_DIR="/opt/remnanode"
+    else
+        error "Remnawave или Remnanode должны быть установлены для selfsteal"
+        return 1
+    fi
+
+    # Устанавливаем REVERSE_PROXY если не задан
+    if [ -z "${REVERSE_PROXY:-}" ]; then
+        if command -v nginx >/dev/null 2>&1; then
+            REVERSE_PROXY="nginx"
+            log "Используется установленный Nginx"
+        elif command -v caddy >/dev/null 2>&1; then
+            REVERSE_PROXY="caddy"
+            log "Используется установленный Caddy"
+        else
+            warn "Reverse proxy не найден, устанавливаем Nginx..."
+            install_nginx
+            REVERSE_PROXY="nginx"
+        fi
     fi
 
     echo ""
@@ -509,20 +681,20 @@ main() {
                 case $install_choice in
                     1)
                         install_packages
-                        # WireGuard установка из оригинального скрипта
+                        install_wireguard
                         ;;
                     2)
                         install_packages
-                        # 3x-ui установка
+                        install_3xui
                         ;;
                     3)
                         install_packages
                         select_reverse_proxy
-                        # Remnawave установка
+                        install_remnawave
                         ;;
                     4)
                         install_packages
-                        # Hysteria2 установка
+                        install_hysteria2
                         ;;
                     5)
                         install_packages
@@ -531,7 +703,11 @@ main() {
                     6)
                         install_packages
                         select_reverse_proxy
-                        # Установка всех компонентов
+                        install_wireguard
+                        install_3xui
+                        install_remnawave
+                        install_hysteria2
+                        install_mtproxy
                         ;;
                     0) continue ;;
                     *) warn "Неверный выбор / Invalid choice" ;;
@@ -539,8 +715,14 @@ main() {
                 read -p "Нажмите Enter / Press Enter..."
                 ;;
             6)
-                install_selfsteal
-                read -p "Нажмите Enter / Press Enter..."
+                # Проверка перед вызовом
+                if [ ! -d "/opt/remnawave" ] && [ ! -d "/opt/remnanode" ]; then
+                    error "Сначала установите Remnawave (опция 1 -> 3)"
+                    read -p "Нажмите Enter / Press Enter..."
+                else
+                    install_selfsteal
+                    read -p "Нажмите Enter / Press Enter..."
+                fi
                 ;;
             9)
                 if [ "$MENU_LANG" = "en" ]; then

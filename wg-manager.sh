@@ -198,30 +198,33 @@ main() {
         exit 1
     fi
 
-    show_menu
+    while true; do
+        show_menu
 
-    case $choice in
-        1)
-            add_client
-            ;;
-        2)
-            list_clients
-            ;;
-        3)
-            show_client
-            ;;
-        4)
-            remove_client
-            ;;
-        5)
-            print_msg "Выход..."
-            exit 0
-            ;;
-        *)
-            print_error "Неверный выбор"
-            exit 1
-            ;;
-    esac
+        case $choice in
+            1)
+                add_client
+                ;;
+            2)
+                list_clients
+                read -p "Нажмите Enter..."
+                ;;
+            3)
+                show_client
+                ;;
+            4)
+                remove_client
+                ;;
+            5)
+                print_msg "Выход..."
+                exit 0
+                ;;
+            *)
+                print_error "Неверный выбор"
+                sleep 1
+                ;;
+        esac
+    done
 }
 
 main

@@ -41,8 +41,8 @@ update_remnawave() {
     fi
 
     cd /opt/remnawave
-    docker-compose pull
-    docker-compose up -d
+    docker compose pull
+    docker compose up -d
     docker image prune -f
 
     print_msg "Remnawave обновлен"
