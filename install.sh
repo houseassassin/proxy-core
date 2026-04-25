@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Proxy-Core - Advanced VPN & Proxy Panel Auto-Installer
-# Version: 2.1.0
+# Version: 2.1.1
 # Author: houseassassin
 # GitHub: https://github.com/houseassassin/proxy-core
 #
@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-SCRIPT_VERSION="2.1.0"
+SCRIPT_VERSION="2.1.1"
 PROJECT_DIR="/opt/proxy-core"
 LANG_FILE="${PROJECT_DIR}/.selected_language"
 
