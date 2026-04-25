@@ -15,7 +15,7 @@ SCRIPT_VERSION="2.1.1"
 PROJECT_DIR="/opt/proxy-core"
 LANG_FILE="${PROJECT_DIR}/.selected_language"
 
-# Colors
+# Colors and styles
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -23,7 +23,21 @@ BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 GRAY='\033[0;90m'
+WHITE='\033[1;37m'
 NC='\033[0m'
+
+# Styles
+BOLD='\033[1m'
+DIM='\033[2m'
+UNDERLINE='\033[4m'
+BLINK='\033[5m'
+
+# Background colors
+BG_RED='\033[41m'
+BG_GREEN='\033[42m'
+BG_BLUE='\033[44m'
+BG_MAGENTA='\033[45m'
+BG_CYAN='\033[46m'
 
 # Create project directory first
 mkdir -p "$PROJECT_DIR"
@@ -31,24 +45,39 @@ mkdir -p "$PROJECT_DIR"
 # Logging
 LOGFILE="${PROJECT_DIR}/installer.log"
 
-log() { echo -e "${GREEN}[INFO]${NC} $1" | tee -a "$LOGFILE"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1" | tee -a "$LOGFILE"; }
-error() { echo -e "${RED}[ERROR]${NC} $1" | tee -a "$LOGFILE"; exit 1; }
-success() { echo -e "${GREEN}[SUCCESS]${NC} $1" | tee -a "$LOGFILE"; }
+log() {
+    echo -e "  ${CYAN}ℹ${NC} ${WHITE}$1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $1" >> "$LOGFILE" 2>/dev/null
+}
+
+warn() {
+    echo -e "  ${YELLOW}⚠${NC} ${YELLOW}$1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] $1" >> "$LOGFILE" 2>/dev/null
+}
+
+error() {
+    echo -e "  ${RED}✗${NC} ${RED}$1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $1" >> "$LOGFILE" 2>/dev/null
+}
+
+success() {
+    echo -e "  ${GREEN}✓${NC} ${GREEN}$1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] $1" >> "$LOGFILE" 2>/dev/null
+}
 
 # Spinner animation
 spinner() {
     local pid=$1
     local text=$2
-    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
 
     while kill -0 "$pid" 2>/dev/null; do
-        for (( i=0; i<${#spinstr}; i++ )); do
-            printf "\r${GREEN}[%s]${NC} %s" "${spinstr:$i:1}" "$text"
+        for frame in "${frames[@]}"; do
+            printf "\r  ${CYAN}${frame}${NC} ${WHITE}%s${NC}" "$text"
             sleep 0.1
         done
     done
-    printf "\r\033[K"
+    printf "\r  ${GREEN}✓${NC} ${WHITE}%s${NC}\n" "$text"
 }
 
 # Language support
@@ -631,34 +660,94 @@ EOF
 
 # Main menu
 show_main_menu() {
-    clear
-    echo -e "${MAGENTA}╔════════════════════════════════════════╗${NC}"
-    echo -e "${MAGENTA}║   $(L MENU_TITLE)                    ║${NC}"
-    echo -e "${MAGENTA}║   Version: ${SCRIPT_VERSION}                      ║${NC}"
-    echo -e "${MAGENTA}╚════════════════════════════════════════╝${NC}"
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Source banner
+    if [ -f "$SCRIPT_DIR/banner.sh" ]; then
+        source "$SCRIPT_DIR/banner.sh"
+        show_gradient_banner
+    else
+        clear
+        echo -e "${MAGENTA}╔════════════════════════════════════════╗${NC}"
+        echo -e "${MAGENTA}║   🚀 Proxy-Core Installer             ║${NC}"
+        echo -e "${MAGENTA}║   Version: ${SCRIPT_VERSION}                      ║${NC}"
+        echo -e "${MAGENTA}╚════════════════════════════════════════╝${NC}"
+        echo ""
+    fi
+
+    echo -e "  ${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${CYAN}║${NC}  ${WHITE}📦 УСТАНОВКА${NC}                                                ${CYAN}║${NC}"
+    echo -e "  ${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${YELLOW}1.${NC} $(L MENU_INSTALL)"
-    echo -e "${YELLOW}2.${NC} $(L MENU_MANAGE)"
-    echo -e "${YELLOW}3.${NC} $(L MENU_BACKUP)"
-    echo -e "${YELLOW}4.${NC} $(L MENU_UPDATE)"
-    echo -e "${YELLOW}5.${NC} $(L MENU_UNINSTALL)"
-    echo -e "${YELLOW}6.${NC} $(L SELFSTEAL)"
-    echo -e "${YELLOW}9.${NC} Сменить язык / Change language"
-    echo -e "${YELLOW}0.${NC} $(L MENU_EXIT)"
+    echo -e "  ${YELLOW}1.${NC} 🔧 ${WHITE}Установить панель${NC}"
+    echo -e "     ${GRAY}WireGuard, 3x-ui, Remnawave, Hysteria2, MTProxy${NC}"
+    echo ""
+
+    echo -e "  ${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${CYAN}║${NC}  ${WHITE}⚙️  УПРАВЛЕНИЕ${NC}                                               ${CYAN}║${NC}"
+    echo -e "  ${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  ${YELLOW}2.${NC} 🎮 ${WHITE}Управление сервисами${NC}"
+    echo -e "     ${GRAY}Запуск, остановка, перезапуск панелей${NC}"
+    echo ""
+    echo -e "  ${YELLOW}3.${NC} 💾 ${WHITE}Резервное копирование${NC}"
+    echo -e "     ${GRAY}Создание и восстановление бэкапов${NC}"
+    echo ""
+    echo -e "  ${YELLOW}4.${NC} 🔄 ${WHITE}Обновить компоненты${NC}"
+    echo -e "     ${GRAY}Обновление установленных панелей${NC}"
+    echo ""
+
+    echo -e "  ${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${CYAN}║${NC}  ${WHITE}🌐 ДОПОЛНИТЕЛЬНО${NC}                                            ${CYAN}║${NC}"
+    echo -e "  ${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  ${YELLOW}5.${NC} 🗑️  ${WHITE}Удалить панель${NC}"
+    echo -e "     ${GRAY}Полное удаление установленных компонентов${NC}"
+    echo ""
+    echo -e "  ${YELLOW}6.${NC} 🎭 ${WHITE}Установить Selfsteal${NC}"
+    echo -e "     ${GRAY}Маскировка трафика под обычный сайт${NC}"
+    echo ""
+    echo -e "  ${YELLOW}7.${NC} 🌐 ${WHITE}Настроить Reverse Proxy${NC}"
+    echo -e "     ${GRAY}Nginx, Caddy, HAProxy - установка и настройка${NC}"
+    echo ""
+
+    echo -e "  ${GRAY}─────────────────────────────────────────────────────────────────${NC}"
+    echo ""
+    echo -e "  ${YELLOW}9.${NC} 🌍 ${WHITE}Сменить язык / Change language${NC}"
+    echo -e "  ${YELLOW}0.${NC} 🚪 ${WHITE}Выход / Exit${NC}"
+    echo ""
+    echo -e "  ${GRAY}─────────────────────────────────────────────────────────────────${NC}"
     echo ""
 }
 
 show_install_menu() {
     clear
-    echo -e "${GREEN}$(L SELECT_PANEL)${NC}"
     echo ""
-    echo -e "${YELLOW}1.${NC} $(L WIREGUARD)"
-    echo -e "${YELLOW}2.${NC} $(L 3XUI)"
-    echo -e "${YELLOW}3.${NC} $(L REMNAWAVE)"
-    echo -e "${YELLOW}4.${NC} $(L HYSTERIA2)"
-    echo -e "${YELLOW}5.${NC} $(L MTPROXY)"
-    echo -e "${YELLOW}6.${NC} $(L ALL)"
-    echo -e "${YELLOW}0.${NC} Назад / Back"
+    echo -e "  ${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${GREEN}║${NC}  ${WHITE}📦 Выберите панель для установки${NC}                          ${GREEN}║${NC}"
+    echo -e "  ${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  ${YELLOW}1.${NC} 🔐 ${WHITE}WireGuard VPN${NC}"
+    echo -e "     ${GRAY}Современный, быстрый и безопасный VPN${NC}"
+    echo ""
+    echo -e "  ${YELLOW}2.${NC} 🌐 ${WHITE}3x-ui Panel${NC}"
+    echo -e "     ${GRAY}VLESS, VMess, Trojan, Shadowsocks${NC}"
+    echo ""
+    echo -e "  ${YELLOW}3.${NC} 🐳 ${WHITE}Remnawave Panel${NC}"
+    echo -e "     ${GRAY}Современная панель с Docker${NC}"
+    echo ""
+    echo -e "  ${YELLOW}4.${NC} ⚡ ${WHITE}Hysteria2 Proxy${NC}"
+    echo -e "     ${GRAY}Высокоскоростной прокси с маскировкой${NC}"
+    echo ""
+    echo -e "  ${YELLOW}5.${NC} 📱 ${WHITE}MTProxy (Telegram)${NC}"
+    echo -e "     ${GRAY}Официальный прокси для Telegram${NC}"
+    echo ""
+    echo -e "  ${GRAY}─────────────────────────────────────────────────────────────────${NC}"
+    echo ""
+    echo -e "  ${YELLOW}6.${NC} 🚀 ${WHITE}Установить всё${NC}"
+    echo -e "     ${GRAY}Последовательная установка всех панелей${NC}"
+    echo ""
+    echo -e "  ${YELLOW}0.${NC} ⬅️  ${WHITE}Назад / Back${NC}"
     echo ""
 }
 
