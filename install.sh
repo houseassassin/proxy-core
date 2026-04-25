@@ -813,6 +813,17 @@ main() {
                     read -p "Нажмите Enter / Press Enter..."
                 fi
                 ;;
+            7)
+                # Запуск Reverse Proxy Manager
+                if [ -f "$PROJECT_DIR/reverse-proxy-manager.sh" ]; then
+                    bash "$PROJECT_DIR/reverse-proxy-manager.sh"
+                elif [ -f "./reverse-proxy-manager.sh" ]; then
+                    bash ./reverse-proxy-manager.sh
+                else
+                    error "reverse-proxy-manager.sh не найден"
+                    read -p "Нажмите Enter / Press Enter..."
+                fi
+                ;;
             9)
                 if [ "$MENU_LANG" = "en" ]; then
                     save_language "ru"
